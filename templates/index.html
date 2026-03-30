@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Stock Analyzer Pro</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+<h2>Stock Analyzer Pro</h2>
+
+<select id="stockList"></select>
+<button onclick="sendSymbol()">Analyze</button>
+
+<h3 id="signal"></h3>
+
+<canvas id="chart" width="800" height="400"></canvas>
+<canvas id="rsiChart" width="800" height="200"></canvas>
+
+<script>
+const API = "http://127.0.0.1:8000";
+
+let chart;
+let rsiChart;
+
+// ====================
+// Load Stocks
+// ====================
+async function loadStocks() {
+    const res = await fetch(`${API}/stocks`);
+    const stocks = await res.json();
+
+    const select = document.getElementById("stockList");
+    select.innerHTML = "";
+
+    stocks.forEach(s => {
+        let opt = document.createElement("option");
+        opt.value = s;
+        opt.text = s;
+        select.appendChild(opt);
+    });
+}
+loadStocks();
+
+// ====================
+// WebSocket
+// ====================
+const ws = new WebSocket("ws://127.0.0.1:8000/ws");
+
+function sendSymbol() {
+    const symbol = document.getElementById("stockList").value;
+    document.getElementById("signal").innerText = "Loading...";
+    ws.send(symbol);
+}
+
+// ====================
+// Receive Data
+// ====================
+ws.onmessage = (event) => {
+    const data = JSON.parse(event.data);
+
+    if (data.error) {
+        alert(data.error);
+        return;
+    }
+
+    document.getElementById("signal").innerText =
+        `${data.symbol} → ${data.signal} | RSI: ${data.rsi}`;
+
+    drawChart(data);
+    drawRSI(data);
+};
+
+// ====================
+// Main Chart
+// ====================
+function drawChart(data) {
+    const ctx = document.getElementById("chart").getContext("2d");
+
+    if (chart) chart.destroy();
+
+    chart = new Chart(ctx, {
+        type: "line",
+        data: {
+            labels: data.dates,
+            datasets: [
+                {
+                    label: "Price",
+                    data: data.prices,
+                    borderColor: "blue"
+                },
+                {
+                    label: "EMA",
+                    data: data.ema_series,
+                    borderColor: "orange"
+                },
+                {
+                    label: "BB Upper",
+                    data: data.bb_high_series,
+                    borderColor: "green",
+                    borderDash: [5,5]
+                },
+                {
+                    label: "BB Lower",
+                    data: data.bb_low_series,
+                    borderColor: "red",
+                    borderDash: [5,5]
+                },
+                {
+                    label: "Signal",
+                    data: data.prices.map((p, i) => {
+                        if (i === data.prices.length - 1) return p;
+                        return null;
+                    }),
+                    pointBackgroundColor: data.signal === "BUY" ? "green" : "red",
+                    pointRadius: 6,
+                    showLine: false
+                }
+            ]
+        }
+    });
+}
+
+// ====================
+// RSI Chart
+// ====================
+function drawRSI(data) {
+    const ctx = document.getElementById("rsiChart").getContext("2d");
+
+    if (rsiChart) rsiChart.destroy();
+
+    rsiChart = new Chart(ctx, {
+        type: "line",
+        data: {
+            labels: data.dates,
+            datasets: [{
+                label: "RSI",
+                data: data.rsi_series,
+                borderColor: "purple"
+            }]
+        },
+        options: {
+            scales: {
+                y: {
+                    min: 0,
+                    max: 100
+                }
+            }
+        }
+    });
+}
+</script>
+
+</body>
+</html>

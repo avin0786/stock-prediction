@@ -1,0 +1,22 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+fastapi="0.110.0"
+uvicorn="0.29.0"
+pandas="2.2.2"
+numpy="1.26.4"
+ta="0.11.0"
+scikit-learn="1.4.2"
+tensorflow="2.16.1"
+backtrader="*"
+websockets="*"
+yfinance="*"
+jinja2="*"
+
+[dev-packages]
+
+[requires]
+python_version = "3.12"
