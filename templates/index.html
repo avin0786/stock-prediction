@@ -1,80 +1,188 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Stock Analyzer Pro</title>
+    <title>Stock Dashboard</title>
+
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial;
+            background: #f8fafc;
+            color: #1e293b;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+
+        /* LEFT: CHART AREA */
+        .chart-section {
+            flex: 3;
+            padding: 20px;
+        }
+
+        /* RIGHT: STOCK LIST */
+        .sidebar {
+            flex: 1;
+            border-left: 1px solid #e2e8f0;
+            background: white;
+            overflow-y: auto;
+        }
+
+        .header {
+            padding: 15px;
+            border-bottom: 1px solid #e2e8f0;
+            font-weight: bold;
+        }
+
+        .stock-item {
+            padding: 12px;
+            cursor: pointer;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .stock-item:hover {
+            background: #f1f5f9;
+        }
+
+        .active {
+            background: #e0f2fe;
+        }
+
+        /* FILTERS */
+        .filters {
+            margin-bottom: 15px;
+        }
+
+        select {
+            padding: 6px;
+            margin-right: 10px;
+        }
+
+        canvas {
+            background: white;
+            border-radius: 10px;
+            padding: 10px;
+        }
+    </style>
 </head>
+
 <body>
 
-<h2>Stock Analyzer Pro</h2>
+<div class="container">
 
-<select id="stockList"></select>
-<button onclick="sendSymbol()">Analyze</button>
+    <!-- LEFT SIDE -->
+    <div class="chart-section">
 
-<h3 id="signal"></h3>
+        <div class="filters">
+            <select id="month">
+                <option value="">Month</option>
+                <option value="1">Jan</option>
+                <option value="2">Feb</option>
+                <option value="3">Mar</option>
+                <option value="4">Apr</option>
+                <option value="5">May</option>
+                <option value="6">Jun</option>
+                <option value="7">Jul</option>
+                <option value="8">Aug</option>
+                <option value="9">Sep</option>
+                <option value="10">Oct</option>
+                <option value="11">Nov</option>
+                <option value="12">Dec</option>
+            </select>
 
-<canvas id="chart" width="800" height="400"></canvas>
-<canvas id="rsiChart" width="800" height="200"></canvas>
+            <select id="year">
+                <option value="">Year</option>
+                <option>2026</option>
+                <option>2025</option>
+                <option>2024</option>
+            </select>
+
+            <button onclick="reload()">Apply</button>
+        </div>
+
+        <h3 id="title">Select a stock</h3>
+
+        <canvas id="chart" height="120"></canvas>
+
+    </div>
+
+    <!-- RIGHT SIDE -->
+    <div class="sidebar">
+        <div class="header">Stocks</div>
+        <div id="stockList"></div>
+    </div>
+
+</div>
 
 <script>
-const API = "http://127.0.0.1:8000";
+const API = window.location.origin;
 
 let chart;
-let rsiChart;
+let selectedStock = null;
 
-// ====================
-// Load Stocks
-// ====================
+// =======================
+// Load Stock List
+// =======================
 async function loadStocks() {
     const res = await fetch(`${API}/stocks`);
     const stocks = await res.json();
 
-    const select = document.getElementById("stockList");
-    select.innerHTML = "";
+    const container = document.getElementById("stockList");
 
     stocks.forEach(s => {
-        let opt = document.createElement("option");
-        opt.value = s;
-        opt.text = s;
-        select.appendChild(opt);
+        const div = document.createElement("div");
+        div.className = "stock-item";
+        div.innerText = s;
+
+        div.onclick = () => selectStock(s, div);
+
+        container.appendChild(div);
     });
 }
-loadStocks();
 
-// ====================
-// WebSocket
-// ====================
-const ws = new WebSocket("ws://127.0.0.1:8000/ws");
+// =======================
+// Select Stock
+// =======================
+function selectStock(symbol, element) {
+    selectedStock = symbol;
 
-function sendSymbol() {
-    const symbol = document.getElementById("stockList").value;
-    document.getElementById("signal").innerText = "Loading...";
-    ws.send(symbol);
+    document.querySelectorAll(".stock-item").forEach(el => el.classList.remove("active"));
+    element.classList.add("active");
+
+    loadChart();
 }
 
-// ====================
-// Receive Data
-// ====================
+// =======================
+// Load Chart
+// =======================
+const ws = new WebSocket(`ws://${location.host}/ws`);
+
+function loadChart() {
+    if (!selectedStock) return;
+
+    const month = document.getElementById("month").value;
+    const year = document.getElementById("year").value;
+
+    ws.send(JSON.stringify({
+        symbol: selectedStock,
+        month: month,
+        year: year
+    }));
+}
+
 ws.onmessage = (event) => {
     const data = JSON.parse(event.data);
-
-    if (data.error) {
-        alert(data.error);
-        return;
-    }
-
-    document.getElementById("signal").innerText =
-        `${data.symbol} → ${data.signal} | RSI: ${data.rsi}`;
-
     drawChart(data);
-    drawRSI(data);
 };
-
-// ====================
-// Main Chart
-// ====================
+// =======================
+// Draw Chart
+// =======================
 function drawChart(data) {
-    const ctx = document.getElementById("chart").getContext("2d");
+    const ctx = document.getElementById("chart");
 
     if (chart) chart.destroy();
 
@@ -86,68 +194,28 @@ function drawChart(data) {
                 {
                     label: "Price",
                     data: data.prices,
-                    borderColor: "blue"
+                    borderColor: "#2563eb",
+                    tension: 0.3
                 },
                 {
                     label: "EMA",
                     data: data.ema_series,
-                    borderColor: "orange"
-                },
-                {
-                    label: "BB Upper",
-                    data: data.bb_high_series,
-                    borderColor: "green",
-                    borderDash: [5,5]
-                },
-                {
-                    label: "BB Lower",
-                    data: data.bb_low_series,
-                    borderColor: "red",
-                    borderDash: [5,5]
-                },
-                {
-                    label: "Signal",
-                    data: data.prices.map((p, i) => {
-                        if (i === data.prices.length - 1) return p;
-                        return null;
-                    }),
-                    pointBackgroundColor: data.signal === "BUY" ? "green" : "red",
-                    pointRadius: 6,
-                    showLine: false
+                    borderColor: "#f59e0b"
                 }
             ]
         }
     });
 }
 
-// ====================
-// RSI Chart
-// ====================
-function drawRSI(data) {
-    const ctx = document.getElementById("rsiChart").getContext("2d");
-
-    if (rsiChart) rsiChart.destroy();
-
-    rsiChart = new Chart(ctx, {
-        type: "line",
-        data: {
-            labels: data.dates,
-            datasets: [{
-                label: "RSI",
-                data: data.rsi_series,
-                borderColor: "purple"
-            }]
-        },
-        options: {
-            scales: {
-                y: {
-                    min: 0,
-                    max: 100
-                }
-            }
-        }
-    });
+// =======================
+// Reload with filters
+// =======================
+function reload() {
+    loadChart();
 }
+
+// Init
+loadStocks();
 </script>
 
 </body>

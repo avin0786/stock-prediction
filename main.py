@@ -1,11 +1,16 @@
+import json
+
 from fastapi import FastAPI, WebSocket, Request
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
+import asyncio
 
+from src.connection.connection_manager import ConnectionManager
 from src.data_service.impl.yahoo_data_service import YFinanceService
 from src.services.stock_service import StockService
 
 app = FastAPI()
+manager = ConnectionManager()
 templates = Jinja2Templates(directory="templates")
 data_service = YFinanceService()
 stock_service = StockService(data_service)
@@ -23,15 +28,25 @@ def get_stocks():
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
-    await websocket.accept()
+    await manager.connect(websocket)
+
     try:
         while True:
-            symbol = await websocket.receive_text()
+            data = await websocket.receive_text()
+            payload = json.loads(data)
+
+            symbol = payload.get("symbol")
+            month = payload.get("month")
+            year = payload.get("year")
             # Ensure symbol format is correct
             symbol = symbol.upper() if "." in symbol else f"{symbol.upper()}.NS"
+            time  = f"{month}mo" if month else "3mo" # Default to 3 months if not provided
 
-            # Use service to get all analysis
-            analysis = stock_service.get_analysis(symbol)
+            analysis = await asyncio.to_thread(
+                stock_service.get_analysis, symbol,timeframe=time
+            )
+
             await websocket.send_json(analysis)
     except Exception as e:
         print(f"Connection closed: {e}")
+        manager.disconnect(websocket)

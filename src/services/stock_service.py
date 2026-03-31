@@ -10,8 +10,8 @@ class StockService:
         self.data_svc = data_service
         self.model = model
 
-    def get_analysis(self, symbol: str):
-        df = self.data_svc.get_historical_data(symbol)
+    def get_analysis(self, symbol: str,timeframe: str = "3mo"):
+        df = self.data_svc.get_historical_data(symbol,timeframe)
 
         if df.empty:
             return {"error": f"No data for {symbol}"}

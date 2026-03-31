@@ -16,6 +16,7 @@ websockets="*"
 yfinance="*"
 jinja2="*"
 matplotlib="*"
+pandas-stubs = "~=2.2.2"
 
 [dev-packages]
 
