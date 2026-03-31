@@ -10,7 +10,7 @@ A real-time stock analysis application built with **FastAPI**, **WebSockets**, a
 - **NSE Integration**: Automatically handles Indian stock suffixes (e.g., converts `INFY` to `INFY.NS`).
 
 ## 🛠️ Project Structure
-```text
+```
 .
 ├── src/
 │   ├── data_service/
@@ -23,49 +23,43 @@ A real-time stock analysis application built with **FastAPI**, **WebSockets**, a
 ├── main.py                            # FastAPI Entry point & WebSockets
 ├── stock_model.pkl                    # Trained Scikit-Learn model
 └── requirements.txt                   # Project dependencies
+```
 
+## 📦 Installation
 
+### Clone the repository
+```bash
+git clone <your-repo-url>
+cd <project-folder>
+```
 
-📦 Installation 
+### Create a Virtual Environment
+```bash
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+```
 
-    Clone the repository:
-    bash
+### Install Dependencies
+```bash
+pip install fastapi uvicorn yfinance pandas numpy scikit-learn joblib ta
+```
 
-    git clone <your-repo-url>
-    cd <project-folder>
+## 🏃 Usage
 
-    Use code with caution.
-    Create a Virtual Environment:
-    bash
+### Initialize the ML Model
+On the first run, the StockService will automatically generate a stock_model.pkl if it doesn't exist. To train a custom model with your own data, ensure your YFinanceService is active.
 
-    python -m venv venv
-    source venv/bin/activate  # On Windows: venv\Scripts\activate
+### Start the FastAPI Server
+```bash
+uvicorn main:app --reload
+```
 
-    Use code with caution.
-    Install Dependencies:
-    bash
+### Open the Dashboard
+Go to http://127.0.0.1:8000 in your browser.
 
-    pip install fastapi uvicorn yfinance pandas numpy scikit-learn joblib ta
-
-    Use code with caution.
-
-🏃 Usage
-
-    Initialize the ML Model:
-    On the first run, the StockService will automatically generate a stock_model.pkl if it doesn't exist. To train a custom model with your own data, ensure your YFinanceService is active.
-    Start the FastAPI Server:
-    bash
-
-    uvicorn main:app --reload
-
-    Use code with caution.
-    Open the Dashboard:
-    Go to http://127.0.0.1:8000 in your browser.
-
-📊 Technical Details
-
-    Backend: FastAPI (Python)
-    Data Source: Yahoo Finance API (via yfinance)
-    Indicators: ta library for RSI (Momentum)
-    Machine Learning: scikit-learn Random Forest Regressor
-    Frontend: Vanilla JS + Chart.js + WebSockets 
+## 📊 Technical Details
+- **Backend**: FastAPI (Python)
+- **Data Source**: Yahoo Finance API (via yfinance)
+- **Indicators**: ta library for RSI (Momentum)
+- **Machine Learning**: scikit-learn Random Forest Regressor
+- **Frontend**: Vanilla JS + Chart.js + WebSockets

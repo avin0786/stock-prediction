@@ -15,6 +15,7 @@ backtrader="*"
 websockets="*"
 yfinance="*"
 jinja2="*"
+matplotlib="*"
 
 [dev-packages]
 
