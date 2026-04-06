@@ -9,16 +9,24 @@ from src.connection.connection_manager import ConnectionManager
 from src.data_service.impl.yahoo_data_service import YFinanceService
 from src.services.stock_service import StockService
 
+import os
 app = FastAPI()
 manager = ConnectionManager()
-templates = Jinja2Templates(directory="templates")
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+templates = Jinja2Templates(
+    directory=os.path.join(BASE_DIR, "templates")
+)
+
 data_service = YFinanceService()
 stock_service = StockService(data_service)
 
 
+
 @app.get("/", response_class=HTMLResponse)
 async def serve_ui(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+    return templates.TemplateResponse(request=request,name="index.html")
 
 
 @app.get("/stocks")
