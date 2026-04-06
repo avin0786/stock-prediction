@@ -41,7 +41,7 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 ### Install Dependencies
 ```bash
-pip install fastapi uvicorn yfinance pandas numpy scikit-learn joblib ta jinja2
+pip install fastapi uvicorn yfinance pandas numpy scikit-learn joblib ta jinja2 vectorbt kiteconnect yfinance
 ```
 
 ## 🏃 Usage
