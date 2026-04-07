@@ -76,6 +76,11 @@
 
     <!-- LEFT SIDE -->
     <div class="chart-section">
+<div class="metrics">
+    <div class="card">RSI: <span id="rsi"></span></div>
+    <div class="card">EMA: <span id="ema"></span></div>
+    <div class="card">MACD: <span id="macd"></span></div>
+</div>
 
         <div class="filters">
             <select id="month">
@@ -103,6 +108,7 @@
 
             <button onclick="reload()">Apply</button>
         </div>
+
 
         <h3 id="title">Select a stock</h3>
 
@@ -155,6 +161,15 @@ function selectStock(symbol, element) {
 
     loadChart();
 }
+// ====================
+// Update UI
+// ====================
+function updateUI(data) {
+
+    document.getElementById("rsi").innerText = data.rsi;
+    document.getElementById("ema").innerText = data.ema;
+    document.getElementById("macd").innerText = data.macd;
+}
 
 // =======================
 // Load Chart
@@ -176,7 +191,14 @@ function loadChart() {
 
 ws.onmessage = (event) => {
     const data = JSON.parse(event.data);
+     if (!data || !data.prices) {
+            console.warn("Invalid data format", data);
+            drawChart({});
+            updateUI({})
+            return;
+        }
     drawChart(data);
+    updateUI(data)
 };
 // =======================
 // Draw Chart

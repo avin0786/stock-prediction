@@ -4,6 +4,8 @@ from fastapi import FastAPI, WebSocket, Request
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
 import asyncio
+import math
+from src.connection.db_connection import ensure_database, ensure_tables
 
 from src.connection.connection_manager import ConnectionManager
 from src.data_service.impl.yahoo_data_service import YFinanceService
@@ -44,17 +46,24 @@ async def websocket_endpoint(websocket: WebSocket):
             payload = json.loads(data)
 
             symbol = payload.get("symbol")
-            month = payload.get("month")
-            year = payload.get("year")
             # Ensure symbol format is correct
-            symbol = symbol.upper() if "." in symbol else f"{symbol.upper()}.NS"
-            time  = f"{month}mo" if month else "3mo" # Default to 3 months if not provided
-
+            print(f"Received request for symbol: {symbol}")
             analysis = await asyncio.to_thread(
-                stock_service.get_analysis, symbol,timeframe=time
+                stock_service.get_analysis, symbol
             )
 
-            await websocket.send_json(analysis)
+            await websocket.send_json(sanitize(analysis))
     except Exception as e:
         print(f"Connection closed: {e}")
         manager.disconnect(websocket)
+
+def sanitize(obj):
+    if isinstance(obj, dict):
+        return {k: sanitize(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [sanitize(v) for v in obj]
+    elif isinstance(obj, float):
+        if math.isnan(obj) or math.isinf(obj):
+            return None
+        return float(obj)
+    return obj
